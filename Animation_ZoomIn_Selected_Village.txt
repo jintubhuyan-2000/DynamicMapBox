@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AGB Map - Globe View (Multi-select with Popup)</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.js"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+    .legend {
+      position: absolute;
+      bottom: 30px;
+      left: 10px;
+      background-color: white;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      border-radius: 5px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .legend h4 {
+      margin: 0 0 5px;
+      font-size: 14px;
+    }
+
+    .legend div {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .legend div span {
+      display: inline-block;
+      width: 18px;
+      height: 12px;
+      margin-right: 6px;
+    }
+
+    .clear-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: #ffffff;
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      font-family: Arial, sans-serif;
+    }
+
+    .clear-btn:hover {
+      background-color: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <button class="clear-btn" onclick="clearSelections()">Clear Selections</button>
+
+  <div class="legend">
+    <h4>Suitable Area for Restoration</h4>
+    <div><span style="background-color: #a50026;"></span> Not suitable </div>
+    <div><span style="background-color: #d73027;"></span> Very Less Suitable</div>
+    <div><span style="background-color: #1a9850;"></span> Less Suitable</div>
+    <div><span style="background-color: #006837;"></span> Moderate Suitable</div>
+    <div><span style="background-color: #004529;"></span> Highly Suitable</div>
+  </div>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiamludHVtb25pIiwiYSI6ImNtOGZvZnUyNzBmejEybXF4bTdscWl5eGoifQ.-To7K71U2eLulVICuF0EvA';
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/jintumoni/cm8fonlc2005g01sdatj4e89j',
+      center: [0, 20],
+      zoom: 1.5,
+      projection: 'globe'
+    });
+
+    let selectedFeatures = [];
+
+    map.on('load', () => {
+      // Add raster AGB layer
+      map.addSource('agb-source', {
+        type: 'raster',
+        url: 'mapbox://jintumoni.2v6smpxq'
+      });
+
+      map.addLayer({
+        id: 'agb-layer',
+        type: 'raster',
+        source: 'agb-source',
+        paint: {
+          'raster-color': [
+            'interpolate',
+            ['linear'],
+            ['raster-value'],
+            0.3, '#000000',
+            0.55, '#d73027',
+            0.7, '#1a9850',
+            0.9, '#006837',
+            1, '#004529'
+          ]
+        }
+      });
+
+      // Vector polygon source
+      map.addSource('vector-overlay', {
+        type: 'vector',
+        url: 'mapbox://jintumoni.0rj1dz7f'
+      });
+
+      // Transparent fill layer
+      map.addLayer({
+        id: 'polygon-overlay',
+        type: 'fill',
+        source: 'vector-overlay',
+        'source-layer': 'Dhanbad_Village-9p1rx6',
+        paint: {
+          'fill-color': '#ffffff',
+          'fill-opacity': 0.1
+        }
+      });
+
+      // Bold border
+      map.addLayer({
+        id: 'polygon-outline',
+        type: 'line',
+        source: 'vector-overlay',
+        'source-layer': 'Dhanbad_Village-9p1rx6',
+        paint: {
+          'line-color': '#000000',
+          'line-width': 0.5
+        }
+      });
+
+      // Source for selected features
+      map.addSource('selected-feature', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: []
+        }
+      });
+
+      // Green fill for selected features
+      map.addLayer({
+        id: 'selected-layer',
+        type: 'fill',
+        source: 'selected-feature',
+        paint: {
+          'fill-color': '#00FF00',
+          'fill-opacity': 0.5
+        }
+      });
+
+      // On click — show popup and select polygon
+      map.on('click', 'polygon-overlay', (e) => {
+        const clickedFeature = e.features[0];
+        const id = clickedFeature.id || clickedFeature.properties.id || `${Date.now()}-${Math.random()}`;
+        clickedFeature.id = id;
+
+        const alreadySelected = selectedFeatures.some(f => f.id === id);
+        if (!alreadySelected) {
+          selectedFeatures.push(clickedFeature);
+          map.getSource('selected-feature').setData({
+            type: 'FeatureCollection',
+            features: selectedFeatures
+          });
+        }
+
+        const popupContent = Object.entries(clickedFeature.properties)
+          .map(([key, val]) => `<strong>${key}:</strong> ${val}`)
+          .join('<br>');
+
+        new mapboxgl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(popupContent)
+          .addTo(map);
+      });
+
+      map.on('mouseenter', 'polygon-overlay', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+
+      map.on('mouseleave', 'polygon-overlay', () => {
+        map.getCanvas().style.cursor = '';
+      });
+
+      setTimeout(() => {
+        map.flyTo({
+          center: [86.4, 23.8],
+          zoom: 9,
+          essential: true
+        });
+      }, 700);
+    });
+
+    function clearSelections() {
+      selectedFeatures = [];
+      const source = map.getSource('selected-feature');
+      if (source) {
+        source.setData({
+          type: 'FeatureCollection',
+          features: []
+        });
+      }
+    }
+  </script>
+</body>
+</html>
