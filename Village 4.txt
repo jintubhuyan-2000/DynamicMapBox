@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AGB Map - Globe View (Simple Green Visualization)</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.js"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiamludHVtb25pIiwiYSI6ImNtOGZvZnUyNzBmejEybXF4bTdscWl5eGoifQ.-To7K71U2eLulVICuF0EvA';
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/jintumoni/cm8fonlc2005g01sdatj4e89j',
+      center: [86.65, 23.81],
+      zoom: 14,
+      projection: 'globe'
+    });
+
+    map.on('load', () => {
+      // Add your vector source
+      map.addSource('vector-overlay', {
+        type: 'vector',
+        url: 'mapbox://jintumoni.cid9z9y0'
+      });
+
+      // Add polygon layer with solid green color
+      map.addLayer({
+        id: 'polygon-green-layer',
+        type: 'fill',
+        source: 'vector-overlay',
+        'source-layer': 'Dhanbad_Villages_4-bhdovq', // Your source layer name
+        paint: {
+          'fill-color': '#00FF00',  // Green color
+          'fill-opacity': 0.6       // Semi-transparent
+        }
+      });
+
+      // Optional: Add black border outline
+      map.addLayer({
+        id: 'polygon-outline',
+        type: 'line',
+        source: 'vector-overlay',
+        'source-layer': 'Dhanbad_Villages_4-bhdovq',
+        paint: {
+          'line-color': '#000000',
+          'line-width': 0.5
+        }
+      });
+    });
+  </script>
+</body>
+</html>

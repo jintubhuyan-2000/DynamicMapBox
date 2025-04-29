@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AGB Map - Classified Polygons</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.js"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+    .legend {
+      position: absolute;
+      bottom: 30px;
+      left: 10px;
+      background-color: white;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      border-radius: 5px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .legend h4 {
+      margin: 0 0 5px;
+      font-size: 14px;
+    }
+
+    .legend div {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .legend div span {
+      display: inline-block;
+      width: 18px;
+      height: 12px;
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="legend" id="legend">
+    <h4>Natural Drivers</h4>
+    <div><span style="background-color: #1f78b4"></span>Drought</div>
+    <div><span style="background-color: #33a02c"></span>Temperature</div>
+    <div><span style="background-color: #fb9a99"></span>Precipiation</div>
+
+  </div>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiamludHVtb25pIiwiYSI6ImNtOGZvZnUyNzBmejEybXF4bTdscWl5eGoifQ.-To7K71U2eLulVICuF0EvA';
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/jintumoni/cm8fonlc2005g01sdatj4e89j',
+      center: [86.4, 23.95],
+      zoom: 12,
+      projection: 'globe'
+    });
+
+    map.on('load', () => {
+      // Add vector source
+      map.addSource('vector-overlay', {
+        type: 'vector',
+        url: 'mapbox://jintumoni.2juwry08'
+      });
+
+      // Add a layer with random classes
+      map.addLayer({
+        id: 'classified-polygons',
+        type: 'fill',
+        source: 'vector-overlay',
+        'source-layer': 'Dhanbad_Villages_1_polygons_3-9xdbr3', // Your vector tile layer
+        paint: {
+          'fill-color': [
+            'match',
+            ['get', 'DID'],
+            '1', '#1f78b4',
+            '2', '#33a02c',
+            '3', '#fb9a99',
+           
+            '#000000' // fallback color
+          ],
+          'fill-opacity': 0.7
+        }
+      });
+
+      // Add outline
+      map.addLayer({
+        id: 'polygon-outline',
+        type: 'line',
+        source: 'vector-overlay',
+        'source-layer': 'Dhanbad_Villages_1_polygons_3-9xdbr3',
+        paint: {
+          'line-color': '#000000',
+          'line-width': 0.5
+        }
+      });
+
+      // Simulate random assignment of classes
+      map.setFeatureState = function() {}; // Dummy to avoid error
+      map.on('sourcedata', (e) => {
+        if (e.sourceId !== 'vector-overlay' || !e.isSourceLoaded) return;
+
+        map.querySourceFeatures('vector-overlay', {
+          sourceLayer: 'Dhanbad_Villages_1-da7fpo'
+        }).forEach((feature) => {
+          const classes = ['Drought', 'Temperature', 'Precipiation'];
+          const randomClass = classes[Math.floor(Math.random() * classes.length)];
+          feature.properties.class_type = randomClass;
+        });
+      });
+    });
+  </script>
+</body>
+</html>
